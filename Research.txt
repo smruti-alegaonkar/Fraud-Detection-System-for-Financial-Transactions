@@ -1,0 +1,53 @@
+Sidebar Structure (Recommended)
+
+📌 Navigation
+- Home
+- Upload Dataset
+- Train Model
+- Evaluate Model
+- Test Transaction
+
+Simple UI Tech Stack (what you should actually use)
+Easiest option (recommended)
+
+# Streamlit
+Fast
+No frontend headache
+Professors love it
+
+# Backend logic
+Python
+scikit-learn
+XGBoost
+pandas
+
+
+### Screens in the Fraud Detection System (UI)
+
+1. Home
+Project title, short description, navigation
+
+2. Dataset Upload
+Upload CSV
+Show total transactions, fraud vs normal
+Bar chart for class imbalance
+
+3. Data Processing
+Status: scaling, imbalance handling, train-test split
+
+4. Model Training
+Select model (Logistic Regression / XGBoost / Isolation Forest)
+Train button
+
+5. Model Evaluation
+Confusion matrix
+Precision, Recall, F1-score
+Precision-Recall curve
+
+6. Threshold Tuning (Recommended)
+Slider to change fraud threshold
+Metrics update live
+
+7. Test Transaction
+Enter transaction details
+Output: fraud probability + prediction
