@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environment
+.env
+
+# Models
+models/
+*.joblib
+*.pkl
+
+# Data
+data/
+*.csv
+*.xlsx
+
+# Generated plots
+static/plots/*.png
+static/plots/*.csv
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
