@@ -153,7 +153,7 @@ transition: transform 0.2s;
 </nav>
 
 <div class="page-header">
-  <h1>📊 Model Performance Dashboard</h1>
+  <h1> Model Performance Dashboard</h1>
   <p>PaySim dataset — 6,362,620 mobile money transactions · 8,213 fraud cases · 0.13% fraud rate</p>
 </div>
 
@@ -221,7 +221,7 @@ transition: transform 0.2s;
   {% if metrics %}
   <div class="section-head">All models compared</div>
   <div class="card">
-    <div class="card-head"><span>📈</span><h2>Results table</h2></div>
+    <div class="card-head"><span></span><h2>Results table</h2></div>
     <div class="table-wrap">
       <table>
         <thead><tr>
@@ -248,7 +248,7 @@ transition: transform 0.2s;
   </div>
   {% else %}
   <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:1.5rem;text-align:center;color:#64748b;margin-bottom:1.5rem">
-    <p>📭 Run <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">python src/train.py</code> first to generate model results.</p>
+    <p>Run <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">python src/train.py</code> first to generate model results.</p>
   </div>
   {% endif %}
 
@@ -277,7 +277,7 @@ transition: transform 0.2s;
   <div class="section-head">Key concepts explained</div>
   <div class="grid2">
     <div class="insight">
-      <h4>🚫 Why accuracy fails here</h4>
+      <h4>Why accuracy fails here</h4>
       <ul>
         <li>Only 0.13% of transactions are fraud</li>
         <li>Predicting "all legit" gives 99.87% accuracy</li>
@@ -286,7 +286,7 @@ transition: transform 0.2s;
       </ul>
     </div>
     <div class="insight">
-      <h4>🔬 Class imbalance handling</h4>
+      <h4>Class imbalance handling</h4>
       <ul>
         <li><strong>class_weight='balanced'</strong> — loss penalises fraud misses ~770× more</li>
         <li><strong>SMOTE</strong> — creates synthetic fraud via KNN interpolation</li>
@@ -295,7 +295,7 @@ transition: transform 0.2s;
       </ul>
     </div>
     <div class="insight">
-      <h4>⚖️ Precision vs Recall</h4>
+      <h4> Precision vs Recall</h4>
       <ul>
         <li>High recall → catch all fraud → more false alarms</li>
         <li>High precision → fewer alarms → miss some fraud</li>
@@ -304,7 +304,7 @@ transition: transform 0.2s;
       </ul>
     </div>
     <div class="insight">
-      <h4>🌲 Why Random Forest wins</h4>
+      <h4>Why Random Forest wins</h4>
       <ul>
         <li>Learns non-linear patterns (e.g. TRANSFER + balance_zero = fraud)</li>
         <li>200 trees — more robust, less overfitting</li>
@@ -316,7 +316,7 @@ transition: transform 0.2s;
 
   <div class="section-head">About this dataset</div>
   <div class="paysim-box">
-    <h4>📦 PaySim — Mobile Money Fraud Simulation</h4>
+    <h4>PaySim — Mobile Money Fraud Simulation</h4>
     <p>This is <strong>not</strong> the ULB credit card dataset. This is PaySim — a simulation of mobile money transactions based on a real financial company's logs from Africa. It was created for research and has real fraud patterns preserved.</p>
     <p>Key difference from ULB: the features are <strong>interpretable</strong> (you can explain oldbalanceOrg, TRANSFER type, etc. to anyone) whereas ULB used PCA-anonymized V1–V28 columns. PaySim is actually a better dataset for learning because you can reason about why each feature matters for fraud.</p>
   </div>

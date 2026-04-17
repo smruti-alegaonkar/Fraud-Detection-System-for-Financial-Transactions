@@ -139,10 +139,10 @@
 
         <div class="preset-row">
           <label>Presets:</label>
-          <button class="preset-btn" onclick="loadPreset('normal_payment')">✅ Normal payment</button>
-          <button class="preset-btn" onclick="loadPreset('normal_transfer')">✅ Normal transfer</button>
-          <button class="preset-btn" onclick="loadPreset('fraud_transfer')">🚨 Fraud transfer</button>
-          <button class="preset-btn" onclick="loadPreset('fraud_cashout')">🚨 Fraud cash-out</button>
+          <button class="preset-btn" onclick="loadPreset('normal_payment')"> Normal payment</button>
+          <button class="preset-btn" onclick="loadPreset('normal_transfer')"> Normal transfer</button>
+          <button class="preset-btn" onclick="loadPreset('fraud_transfer')">Fraud transfer</button>
+          <button class="preset-btn" onclick="loadPreset('fraud_cashout')"> Fraud cash-out</button>
         </div>
 
         <form id="txnForm">
@@ -195,7 +195,7 @@
             <div class="form-group">
               <label class="fl">Model</label>
               <select id="modelSelect">
-                <option value="rf">Random Forest ⭐ (best)</option>
+                <option value="rf">Random Forest (best)</option>
                 <option value="lr">Logistic Regression</option>
               </select>
             </div>
@@ -210,7 +210,7 @@
             </div>
           </div>
 
-          <button type="submit" class="submit-btn" id="submitBtn">⚡ Check This Transaction</button>
+          <button type="submit" class="submit-btn" id="submitBtn"> Check This Transaction</button>
         </form>
 
       </div>
@@ -221,14 +221,14 @@
         <div class="card-head"><span>📊</span><h2>Prediction Result</h2></div>
         <div id="resultBody">
           <div class="placeholder-state">
-            <div class="big-icon">🤔</div>
+            <div class="big-icon">?</div>
             <p>Fill in the transaction details and click <strong>Check This Transaction</strong>.</p>
           </div>
         </div>
       </div>
 
       <div class="card" style="margin-top:1rem">
-        <div class="card-head"><span>💡</span><h2>What the model checks</h2></div>
+        <div class="card-head"><span></span><h2>What the model checks</h2></div>
         <div class="card-body" style="font-size:0.82rem;color:#475569;line-height:1.7">
           <p><strong>Transaction type</strong> — fraud only occurs in TRANSFER & CASH_OUT.</p>
           <p style="margin-top:6px"><strong>Balance wipe</strong> — if sender balance goes to zero, strong fraud signal.</p>
@@ -306,7 +306,7 @@ document.getElementById('txnForm').addEventListener('submit', async (e) => {
       `<div class="placeholder-state"><div class="big-icon">⚠️</div><p>Error: ${err.message}</p></div>`;
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '⚡ Check This Transaction';
+    btn.innerHTML = 'Check This Transaction';
   }
 });
 
@@ -315,8 +315,8 @@ function renderResult(d) {
   const pct = d.probability_pct;
   const barClass = pct < 15 ? 'low' : pct < 40 ? 'mid' : pct < d.threshold_used*100 ? 'high' : 'fraud-color';
   const flagsHtml = d.flags && d.flags.length
-    ? d.flags.map(f => `<div class="flag-item">⚠️ ${f}</div>`).join('')
-    : `<div class="no-flags">✅ No suspicious patterns detected.</div>`;
+    ? d.flags.map(f => `<div class="flag-item">${f}</div>`).join('')
+    : `<div class="no-flags"> No suspicious patterns detected.</div>`;
 
   document.getElementById('resultBody').innerHTML = `
     <div class="verdict-box">
