@@ -4,7 +4,7 @@ models.py
 Model definitions and training wrappers.
 
 Models implemented:
-  1. LogisticRegression  (baseline, class_weight='balanced')
+  1. LogisticRegressionFromScratch  (baseline, class_weight='balanced')
   2. RandomForestClassifier (stronger, handles imbalance well)
   3. IsolationForest (anomaly detection — unsupervised)
 
@@ -17,7 +17,7 @@ Key concept — WHY class_weight='balanced'?
 import numpy as np
 import joblib
 import os
-from sklearn.linear_model import LogisticRegression
+# from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, IsolationForest
 from sklearn.metrics import (
     classification_report, roc_auc_score,
@@ -34,28 +34,102 @@ def print_banner(title: str):
     print(f"{'═'*60}")
 
 
-# ── Logistic Regression ──────────────────────────────────────────────────────
+# ── Logistic Regression
+class LogisticRegressionFromScratch:
+    def __init__(self, learning_rate=0.05, num_iterations=2000):
+        # The step size for Gradient Descent
+        self.learning_rate = learning_rate
+        # How many times we pass through the data to optimize weights
+        self.num_iterations = num_iterations
+        
+        # W represents feature weights (how important is 'amount' vs 'step'?)
+        self.weights = None
+        # B represents the bias (base probability of fraud)
+        self.bias = None
+        self.classes_ = np.array([0, 1])
 
-def train_logistic_regression(X_train, y_train,
-                               class_weight="balanced",
-                               random_state=42) -> LogisticRegression:
-    """
-    Baseline model.
+    def _sigmoid(self, z):
+        """
+        The core activation function.
+        It maps any real number into a probability between 0 and 1.
+        Formula: 1 / (1 + e^-z)
+        """
+        # np.clip prevents mathematical overflow on very massive numbers 
+        z = np.clip(z, -250, 250)
+        return 1 / (1 + np.exp(-z))
 
-    class_weight='balanced' → adjusts weights inversely proportional to
-    class frequencies.  Equivalent to over-sampling fraud ~590× in the loss.
+    def fit(self, X, y):
+        """
+        Gradient Descent Optimization with Native Class Balancing
+        """
+        num_samples, num_features = X.shape
+        
+        # Calculate class weights manually to handle 99.8% Legitimate imbalance
+        num_fraud = np.sum(y == 1)
+        num_legit = num_samples - num_fraud
+
+        # Formula: weight = n_samples / (n_classes * n_samples_in_class)
+        # This penalizes the model 590x more for missing a Fraud!
+        weight_legit = num_samples / (2.0 * num_legit)
+        weight_fraud = num_samples / (2.0 * num_fraud)
+
+        # Create a vectorized array where each transaction has its appropriate weight
+        sample_weights = np.where(y == 1, weight_fraud, weight_legit)
+        
+        # 1. Initialize weights and bias to zeros
+        self.weights = np.zeros(num_features)
+        self.bias = 0
+
+        # 2. Gradient Descent Loop
+        for i in range(self.num_iterations):
+            
+            linear_model = np.dot(X, self.weights) + self.bias
+            y_predicted = self._sigmoid(linear_model)
+
+            # Multiply the raw error by the sample weight
+            error = (y_predicted - y) * sample_weights
+
+            dw = (1 / num_samples) * np.dot(X.T, error)
+            db = (1 / num_samples) * np.sum(error)
+
+            # Step C: Update Weights (Move in the direction of 'less wrong')
+            self.weights -= self.learning_rate * dw
+            self.bias -= self.learning_rate * db
+            
+            # (Optional) Print loss every 100 iterations to watch it learn
+            if i % 100 == 0:
+                loss = self._binary_cross_entropy(y, y_predicted)
+                print(f"Iteration {i}: Loss = {loss:.4f}")
+
+    def predict_proba(self, X):
+        """Returns the exact percentage probability of Fraud"""
+        linear_model = np.dot(X, self.weights) + self.bias
+        probas = self._sigmoid(linear_model)
+        # Scikit-learn expects a 2D array of both class probabilities
+        return np.vstack([1 - probas, probas]).T
+        
+    def predict(self, X, threshold=0.5):
+        """Returns a hard 1 (Fraud) or 0 (Legitimate)"""
+        linear_model = np.dot(X, self.weights) + self.bias
+        probabilities = self._sigmoid(linear_model)
+        return (probabilities >= threshold).astype(int)
+
+    def _binary_cross_entropy(self, y_true, y_pred):
+        """The Log-Loss function"""
+        epsilon = 1e-9
+        y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
+        loss = -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
+        return loss
+
+def train_logistic_regression(X_train, y_train, class_weight="balanced", random_state=42):
     """
-    print_banner("Training Logistic Regression")
-    model = LogisticRegression(
-        class_weight=class_weight,
-        max_iter=1000,
-        random_state=random_state,
-        solver="lbfgs",
-        C=0.1,          # Regularisation — prevents overfitting
-        n_jobs=-1,
-    )
+    Wrapper function that trains our custom LogisticRegressionFromScratch module.
+    Note: class_weight is ignored in our from-scratch implementation.
+    """
+    print_banner("Training Custom Logistic Regression (From Scratch)")
+    model = LogisticRegressionFromScratch(learning_rate=0.05, num_iterations=1000)
     model.fit(X_train, y_train)
-    print(f"   ✅ Converged | Coefficients shape: {model.coef_.shape}")
+    print("   ✅ Custom Model Converged.")
     return model
 
 
@@ -114,7 +188,6 @@ def train_isolation_forest(X_train,
 
 
 # ── Evaluation ───────────────────────────────────────────────────────────────
-
 def evaluate_classifier(model, X_test, y_test,
                          model_name: str = "Model",
                          threshold: float = 0.5) -> dict:

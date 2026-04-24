@@ -19,6 +19,7 @@ from flask import Flask, request, jsonify, render_template
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import joblib
+import shap
 
 BASE_DIR  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_DIR = os.path.join(BASE_DIR, "models")
@@ -40,7 +41,30 @@ OPTIMAL_T    = CONFIG["optimal_threshold"]
 FEATURE_COLS = CONFIG["feature_cols"]
 print(f"Models loaded. Optimal threshold: {OPTIMAL_T:.4f}")
 
+print("Initializing SHAP Explainer...")
+SHAP_EXPLAINER = shap.TreeExplainer(RF_MODEL)
+print("SHAP Explainer ready.")
+
 TRANSACTION_TYPES = ["CASH_OUT", "TRANSFER", "PAYMENT", "CASH_IN", "DEBIT"]
+
+FEATURE_NAME_MAP = {
+    "amount": "Transaction amount",
+    "oldbalanceOrg": "Sender's starting balance",
+    "newbalanceOrig": "Sender's ending balance",
+    "oldbalanceDest": "Receiver's starting balance",
+    "newbalanceDest": "Receiver's ending balance",
+    "type_CASH_OUT": "Type: Cash out",
+    "type_TRANSFER": "Type: Transfer",
+    "type_PAYMENT": "Type: Payment",
+    "type_CASH_IN": "Type: Cash in",
+    "type_DEBIT": "Type: Debit",
+    "balance_diff_orig": "Change in sender's balance",
+    "balance_diff_dest": "Change in receiver's balance",
+    "orig_balance_zero": "Sender balance wiped to zero",
+    "dest_balance_zero": "Receiver account was completely empty",
+    "amount_ratio_orig": "Proportion of sender's balance taken",
+    "step": "Time of day pattern"
+}
 
 
 def build_features(data: dict) -> pd.DataFrame:
@@ -89,13 +113,38 @@ def predict_transaction(data: dict, model_name: str = "rf",
     proba = model.predict_proba(X)[0, 1]
     pred  = int(proba >= t)
 
-    if proba < 0.1:   risk = "LOW"
-    elif proba < 0.4: risk = "MEDIUM"
+    if proba < 0.015:  risk = "LOW"
     elif proba < t:   risk = "HIGH"
     else:             risk = "FRAUD"
 
+    # --- SHAP Dynamic Explainability ---
+    shap_flags = []
+    if model_name == "rf":
+        try:
+            shap_output = SHAP_EXPLAINER.shap_values(X)
+            # Handle different shape outputs from SHAP depending on version
+            if isinstance(shap_output, list):
+                fraud_contrib = shap_output[1][0]  # Positive class
+            elif len(shap_output.shape) == 3:
+                fraud_contrib = shap_output[0, :, 1]
+            else:
+                fraud_contrib = shap_output[0]
+
+            feature_impacts = list(zip(FEATURE_COLS, fraud_contrib))
+            feature_impacts.sort(key=lambda x: x[1], reverse=True)
+            
+            # Features that helped push to FRAUD (positive impact)
+            top_features = [f for f, impact in feature_impacts if impact > 0.001][:3]
+            
+            if top_features:
+                names = ", ".join([f"'{FEATURE_NAME_MAP.get(f, f)}'" for f in top_features])
+                shap_flags.append(f"Insights of the transaction : {names} had the largest mathematical impact driving this towards Fraud.")
+        except Exception as e:
+            print(f"SHAP error: {e}")
+
     # Fraud flags using PaySim domain knowledge
     flags = []
+    flags.extend(shap_flags)
     txn_type  = data.get("type", "PAYMENT")
     amount    = float(data.get("amount", 0))
     oldbal_o  = float(data.get("oldbalanceOrg", 0))
@@ -114,6 +163,15 @@ def predict_transaction(data: dict, model_name: str = "rf",
         flags.append(f"Very large transaction: ${amount:,.2f}")
     if abs((oldbal_o - newbal_o) - amount) > 1:
         flags.append("Balance change does not match transaction amount (inconsistency)")
+
+    # Provide an Action Item for the analyst based on the risk and circumstances
+    if risk in ("FRAUD", "HIGH") or proba >= 0.20:
+        if newbal_o == 0 and amount > 0:
+            flags.append("Action Suggested: Call sender to verify identity (high risk of account takeover).")
+        elif oldbal_d == 0 and txn_type in ("TRANSFER", "CASH_OUT"):
+            flags.append("Action Suggested: Freeze destination account pending review (suspected mule account).")
+        else:
+            flags.append("Action Suggested: Temporarily hold transaction and flag for manual analyst review.")
 
     latency_ms = round((time.time() - t_start) * 1000, 2)
     return {

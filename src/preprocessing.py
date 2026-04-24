@@ -43,7 +43,6 @@ _SCALE_COLS = [
     "amount_ratio_orig", "step",
 ]
 
-
 class Preprocessor:
     def __init__(self):
         self.scaler = StandardScaler()

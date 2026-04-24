@@ -381,6 +381,28 @@
         border-radius: 7px;
         padding: 8px 12px;
       }
+      .flag-item.ai-insight {
+        background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+        border: 1px solid #c7d2fe;
+        color: #4338ca;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-weight: 500;
+        box-shadow: 0 2px 4px rgba(67, 56, 202, 0.05);
+      }
+      .verdict-label.suspicious {
+        color: #ea580c;
+      }
+      .flag-item.action-insight {
+        background: #fdf4ff;
+        border: 1px solid #f0abfc;
+        color: #86198f;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-weight: 700;
+        margin-top: 10px;
+        box-shadow: 0 2px 4px rgba(217, 70, 239, 0.1);
+      }
       .meta-footer {
         background: #f8fafc;
         border-top: 1.5px solid #e2e8f0;
@@ -441,14 +463,14 @@
     <nav>
       <div class="nav-brand">🛡️ FraudShield</div>
       <div class="nav-links">
-        <a href="/" class="active">🔍 Predict</a>
-        <a href="/simulate">📡 Simulate</a>
-        <a href="/dashboard">📊 Dashboard</a>
+        <a href="/" class="active">Predict</a>
+        <a href="/simulate">Simulate</a>
+        <a href="/dashboard">Dashboard</a>
       </div>
     </nav>
 
     <div class="page-header">
-      <h1>🔍 Transaction Fraud Checker</h1>
+      <h1>Transaction Fraud Checker</h1>
       <p>
         Using the PaySim mobile money dataset — 6.3M real transactions, real
         fraud patterns
@@ -590,31 +612,7 @@
                     <option value="lr">Logistic Regression</option>
                   </select>
                 </div>
-                <div class="form-group">
-                  <label class="fl"
-                    >Threshold:
-                    <strong id="thrDisplay" style="color: #2563eb"
-                      >{{ optimal_threshold }}</strong
-                    ></label
-                  >
-                  <div class="slider-wrap">
-                    <input
-                      type="range"
-                      id="threshold"
-                      min="0.01"
-                      max="0.99"
-                      step="0.01"
-                      value="{{ optimal_threshold }}"
-                      oninput="
-                        document.getElementById('thrDisplay').textContent =
-                          parseFloat(this.value).toFixed(2)
-                      "
-                    />
-                  </div>
-                  <div class="hint">
-                    Low = catch more fraud · High = fewer false alarms
-                  </div>
-                </div>
+                <!-- Threshold control removed — system now relies strictly on optimal_threshold backend -->
               </div>
 
               <button type="submit" class="submit-btn" id="submitBtn">
@@ -751,8 +749,7 @@
             newbalanceDest: parseFloat(
               document.getElementById("newbalanceDest").value,
             ),
-            model: document.getElementById("modelSelect").value,
-            threshold: parseFloat(document.getElementById("threshold").value),
+            model: document.getElementById("modelSelect").value
           };
 
           try {
@@ -775,6 +772,22 @@
       function renderResult(d) {
         const isFraud = d.prediction === 1;
         const pct = d.probability_pct;
+        const isSuspicious = !isFraud && (d.risk_level === "HIGH" || d.risk_level === "MEDIUM");
+        
+        let verdictText = "LOOKS LEGITIMATE";
+        let verdictClass = "legit";
+        let verdictIcon = "✅";
+        
+        if (isFraud) {
+            verdictText = "FRAUD DETECTED";
+            verdictClass = "fraud";
+            verdictIcon = "🚨";
+        } else if (isSuspicious) {
+            verdictText = "NEEDS REVIEW";
+            verdictClass = "suspicious";
+            verdictIcon = "⚠️";
+        }
+
         const barClass =
           pct < 15
             ? "low"
@@ -783,15 +796,24 @@
               : pct < d.threshold_used * 100
                 ? "high"
                 : "fraud-color";
+                
         const flagsHtml =
           d.flags && d.flags.length
-            ? d.flags.map((f) => `<div class="flag-item">${f}</div>`).join("")
+            ? d.flags.map((f) => {
+                if (f.startsWith("Insights of the transaction")) {
+                    return `<div class="flag-item ai-insight">${f}</div>`;
+                }
+                if (f.startsWith("🎯 Action Suggested:")) {
+                    return `<div class="flag-item action-insight">${f}</div>`;
+                }
+                return `<div class="flag-item">${f}</div>`;
+            }).join("")
             : `<div class="no-flags"> No suspicious patterns detected.</div>`;
 
         document.getElementById("resultBody").innerHTML = `
     <div class="verdict-box">
-      <div class="verdict-icon">${isFraud ? "🚨" : "✅"}</div>
-      <div class="verdict-label ${isFraud ? "fraud" : "legit"}">${isFraud ? "FRAUD DETECTED" : "LOOKS LEGITIMATE"}</div>
+      <div class="verdict-icon">${verdictIcon}</div>
+      <div class="verdict-label ${verdictClass}">${verdictText}</div>
       <div class="verdict-sub">Fraud probability: ${pct.toFixed(3)}% &nbsp;|&nbsp; Risk: ${d.risk_level}</div>
     </div>
     <div class="prob-section">
